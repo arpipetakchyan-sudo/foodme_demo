@@ -124,6 +124,22 @@ jobs:
             apps/web/package-lock.json
             apps/admin/package-lock.json
 
+      - name: Install dependencies and browser
+        run: |
+          npm ci --prefix apps/web
+          npm ci --prefix apps/admin
+          # web and admin pin different Playwright versions, so install the browser for each
+          (cd apps/web && npx playwright install --with-deps chromium)
+          (cd apps/admin && npx playwright install chromium)
+
+      # In production the backend serves the admin panel at /backoffice (see apps/backend/Dockerfile),
+      # and happy-path.spec.ts checks that page, so bundle it into the backend here too.
+      - name: Build admin panel into backend
+        run: |
+          npm run build --prefix apps/admin
+          mkdir -p apps/backend/src/main/resources/static/backoffice
+          cp -R apps/admin/dist/. apps/backend/src/main/resources/static/backoffice/
+
       # Flyway creates the tables and seed data in Postgres on startup.
       - name: Start backend
         working-directory: apps/backend
@@ -139,14 +155,6 @@ jobs:
             sleep 3
           done
           echo "Backend did not start"; cat backend.log; exit 1
-
-      - name: Install dependencies and browser
-        run: |
-          npm ci --prefix apps/web
-          npm ci --prefix apps/admin
-          # web and admin pin different Playwright versions, so install the browser for each
-          (cd apps/web && npx playwright install --with-deps chromium)
-          (cd apps/admin && npx playwright install chromium)
 
       # Playwright starts each app's dev server itself (see playwright.config.ts).
       - name: Storefront E2E
