@@ -60,3 +60,8 @@ docs/planted-defects.md
 
 # Machine-local compose override (host-port remap for this workstation)
 infra/docker-compose.local.yml
+
+# Local secrets/config
+MCP.JSON
+.claude/settings.local.json
+.claude/qase-mcp.log
