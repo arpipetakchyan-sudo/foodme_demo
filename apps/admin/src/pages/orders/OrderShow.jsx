@@ -19,10 +19,48 @@ import {
     DialogActions,
     TextField,
     Stack,
+    Rating,
 } from '@mui/material';
 import { OrderStatus, OrderStatusColors, OrderStatusTransitions } from '../../constants/OrderStatus.jsx';
 import { updateOrderStatus } from '../../api/order-api.js';
 import BackButton from '../../layout/BackButton.jsx';
+
+/**
+ * SCRUM-4 R20-R22: the customer's rating of a delivered order. Hidden for orders that
+ * aren't delivered (they can't be rated). The comment is rendered as plain text.
+ */
+const CustomerReview = ({ record }) => {
+    if (record.status !== OrderStatus.DELIVERED) return null;
+    const rating = record.rating;
+    return (
+        <>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                Customer review
+            </Typography>
+            {rating ? (
+                <Box>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                        <Rating value={rating.stars} readOnly aria-label={`Rated ${rating.stars} out of 5`} />
+                        <Typography variant="body2" color="text.secondary">
+                            {rating.stars}/5
+                        </Typography>
+                    </Stack>
+                    {rating.comment && (
+                        <Typography sx={{ mt: 1, whiteSpace: 'pre-line', wordBreak: 'break-word' }}>
+                            {rating.comment}
+                        </Typography>
+                    )}
+                    <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 1 }}>
+                        Rated on {new Date(rating.createdAt).toLocaleString()}
+                    </Typography>
+                </Box>
+            ) : (
+                <Typography color="text.secondary">No review yet</Typography>
+            )}
+        </>
+    );
+};
 
 const OrderDetails = () => {
     const record = useRecordContext();
@@ -163,6 +201,8 @@ const OrderDetails = () => {
                     <Typography variant="h6">Total</Typography>
                     <Typography variant="h6">{record.totalPrice} AMD</Typography>
                 </Stack>
+
+                <CustomerReview record={record} />
 
                 {availableTransitions.length > 0 && (
                     <>

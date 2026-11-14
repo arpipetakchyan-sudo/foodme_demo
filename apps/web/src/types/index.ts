@@ -185,6 +185,19 @@ export interface FullOrderDto {
   orderDishList: OrderDishDto[];
   totalPrice: number;
   createdAt: string;
+  /** The customer's rating, or null if the order hasn't been rated (SCRUM-4). */
+  rating?: OrderRatingDto | null;
+}
+
+export interface OrderRatingDto {
+  stars: number;
+  comment: string | null;
+  createdAt: string;
+}
+
+export interface OrderRatingRequest {
+  stars: number;
+  comment?: string;
 }
 
 export interface ApiError {
