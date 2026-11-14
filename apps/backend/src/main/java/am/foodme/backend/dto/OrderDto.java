@@ -33,6 +33,8 @@ public class OrderDto {
     private List<CreateOrderDishDto> createOrderDishes;
     private List<OrderDishDto> orderDishList;
     private LocalDateTime createdAt;
+    /** Customer's rating of this order, or null if not rated yet (SCRUM-4). */
+    private OrderRatingDto rating;
 
     public static OrderDto mapEntityToDto(Order entity) {
         if (entity == null) {
@@ -61,6 +63,7 @@ public class OrderDto {
         }
         // FM-BUG-06
         dto.setCreatedAt(entity.getCreatedAt());
+        dto.setRating(OrderRatingDto.mapEntityToDto(entity.getRating()));
         return dto;
     }
 }
