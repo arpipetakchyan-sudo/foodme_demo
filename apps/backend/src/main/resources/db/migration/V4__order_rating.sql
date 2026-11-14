@@ -8,7 +8,7 @@ CREATE TABLE foodme.order_rating (
     order_id    BIGINT        NOT NULL UNIQUE REFERENCES foodme."order" (id),
     customer_id BIGINT        NOT NULL REFERENCES foodme.customer (id),
     chef_id     BIGINT        NOT NULL REFERENCES foodme.chef (id),
-    stars       SMALLINT      NOT NULL CHECK (stars BETWEEN 1 AND 5),
+    stars       INTEGER       NOT NULL CHECK (stars BETWEEN 1 AND 5),
     comment     VARCHAR(1000),
     created_at  TIMESTAMP     NOT NULL
 );
