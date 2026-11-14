@@ -8,6 +8,8 @@ import am.foodme.backend.dto.OrderCreateResponseDto;
 import am.foodme.backend.dto.OrderDto;
 import am.foodme.backend.dto.OrderListResponseDto;
 import am.foodme.backend.exceptionHandler.BadRequestException;
+import am.foodme.backend.exceptionHandler.ConflictException;
+import am.foodme.backend.exceptionHandler.ForbiddenException;
 import am.foodme.backend.exceptionHandler.NotFoundException;
 import am.foodme.backend.model.Address;
 import am.foodme.backend.model.Chef;
@@ -166,6 +168,37 @@ public class OrderService {
         Order order = orderRepository.findByNumber(number)
                 .orElseThrow(() -> new NotFoundException("Order " + number + " not found"));
         return OrderDto.mapEntityToDto(order);
+    }
+
+    /**
+     * Lets a customer cancel their own order while the kitchen hasn't accepted it yet (status NEW).
+     * Cancelling an already cancelled order is a no-op, so double taps and retries are safe.
+     */
+    @Transactional
+    public OrderDto cancelForCustomer(String customerEmail, String number) {
+        Customer customer = customerRepository.findByEmail(customerEmail == null ? "" : customerEmail.trim().toLowerCase())
+                .orElseThrow(() -> new NotFoundException("Customer not found"));
+        Order order = orderRepository.findByNumber(number)
+                .orElseThrow(() -> new NotFoundException("Order " + number + " not found"));
+        if (order.getCustomer() == null || !order.getCustomer().getId().equals(customer.getId())) {
+            throw new ForbiddenException("You can only cancel your own orders");
+        }
+        if ("CANCELLED".equals(order.getStatus())) {
+            return OrderDto.mapEntityToDto(order);
+        }
+
+        int updated = orderRepository.transitionStatus(order.getId(), "NEW", "CANCELLED");
+        Order current = orderRepository.findById(order.getId())
+                .orElseThrow(() -> new NotFoundException("Order " + number + " not found"));
+        if (updated == 0 && !"CANCELLED".equals(current.getStatus())) {
+            throw new ConflictException("ACCEPTED".equals(current.getStatus())
+                    ? "This order can no longer be cancelled: the kitchen has already accepted it"
+                    : "This order can no longer be cancelled");
+        }
+        if (updated == 1) {
+            meterRegistry.counter("foodme.orders.cancelled").increment();
+        }
+        return OrderDto.mapEntityToDto(current);
     }
 
     @Transactional(readOnly = true)
