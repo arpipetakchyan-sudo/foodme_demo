@@ -22,7 +22,7 @@ public class Order {
     @Column(name = "number")
     private String number;
 
-    /** NEW | ACCEPTED | DELIVERED | REJECTED */
+    /** NEW | ACCEPTED | DELIVERED | REJECTED | CANCELLED. NEW is shown to customers as "Received". */
     @Column(name = "status")
     private String status;
 

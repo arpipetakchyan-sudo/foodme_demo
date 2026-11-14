@@ -3,6 +3,7 @@ package am.foodme.backend.service;
 import am.foodme.backend.dto.AdminListResponseDto;
 import am.foodme.backend.dto.OrderDto;
 import am.foodme.backend.exceptionHandler.BadRequestException;
+import am.foodme.backend.exceptionHandler.ConflictException;
 import am.foodme.backend.exceptionHandler.NotFoundException;
 import am.foodme.backend.model.Order;
 import am.foodme.backend.repository.OrderRepository;
@@ -21,8 +22,9 @@ import java.util.stream.Collectors;
 public class AdminOrderService {
 
     private static final Map<String, Set<String>> ALLOWED_TRANSITIONS = Map.of(
-            "NEW", Set.of("ACCEPTED", "REJECTED"),
+            "NEW", Set.of("ACCEPTED", "REJECTED", "CANCELLED"),
             "ACCEPTED", Set.of("DELIVERED", "REJECTED")
+            // DELIVERED, REJECTED and CANCELLED are final: no transitions out of them.
     );
 
     private final OrderRepository orderRepository;
@@ -52,14 +54,21 @@ public class AdminOrderService {
     public OrderDto updateStatus(Long id, String newStatus, String rejectReason) {
         Order order = findEntity(id);
         Set<String> allowed = ALLOWED_TRANSITIONS.get(order.getStatus());
-        if (allowed == null || !allowed.contains(newStatus)) {
+        if (newStatus == null || allowed == null || !allowed.contains(newStatus)) {
             throw new BadRequestException("Cannot transition order from " + order.getStatus() + " to " + newStatus);
         }
-        order.setStatus(newStatus);
-        if ("REJECTED".equals(newStatus)) {
-            order.setRejectReason(rejectReason);
+        // Conditional update: if the customer cancelled (or another admin acted) since we read the
+        // order, this matches no row and we refuse instead of overwriting their change.
+        int updated = orderRepository.transitionStatus(id, order.getStatus(), newStatus);
+        if (updated == 0) {
+            throw new ConflictException("Order " + id + " changed status in the meantime; reload and try again");
         }
-        return OrderDto.mapEntityToDto(orderRepository.save(order));
+        Order current = findEntity(id);
+        if ("REJECTED".equals(newStatus)) {
+            current.setRejectReason(rejectReason);
+            current = orderRepository.save(current);
+        }
+        return OrderDto.mapEntityToDto(current);
     }
 
     private Order findEntity(Long id) {
