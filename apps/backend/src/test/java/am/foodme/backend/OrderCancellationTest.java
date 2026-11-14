@@ -8,6 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
@@ -27,8 +28,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-// Fresh database afterwards, so the orders created here don't shift the order numbers
-// that OrderControllerTest expects.
+// Own in-memory database: OrderControllerTest expects the first order number in its database
+// to be FM-100001, so the orders created here must not touch that database's sequence.
+@TestPropertySource(properties =
+        "spring.datasource.url=jdbc:h2:mem:foodme_cancellation;DB_CLOSE_DELAY=-1;MODE=PostgreSQL")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class OrderCancellationTest {
 
