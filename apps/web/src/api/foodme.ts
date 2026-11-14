@@ -14,6 +14,7 @@ import type {
   OrderCreateResponseDto,
   OrderDto,
   OrderListResponseDto,
+  OrderRatingRequest,
 } from "@/types";
 
 export const foodmeApi = {
@@ -46,4 +47,7 @@ export const foodmeApi = {
 
   getMyOrders: (page = 0, size = 20) =>
     apiClient.get<OrderListResponseDto>(`/api/customer/orders?page=${page}&size=${size}`),
+
+  rateOrder: (number: string, payload: OrderRatingRequest) =>
+    apiClient.post<FullOrderDto>(`/api/customer/orders/${encodeURIComponent(number)}/rating`, payload),
 };
